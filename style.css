@@ -169,14 +169,38 @@ select:hover, .search-input:hover { border-color: var(--primary); }
 .search-input { min-width: 200px; }
 
 /* ===== Word grid / cards ===== */
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: var(--space-4); }
+/* 老内核兼底：先 flex 换行（不依赖 grid/gap），支持 grid 的浏览器再用 grid 覆盖 */
+.grid {
+  display: -webkit-box; display: -webkit-flex; display: flex;
+  -webkit-flex-wrap: wrap; flex-wrap: wrap;
+  margin: calc(-1 * var(--space-4)) 0 0 calc(-1 * var(--space-4));
+}
+.grid > .wcard {
+  -webkit-box-flex: 1; -webkit-flex: 1 1 230px; flex: 1 1 230px;
+  max-width: 100%;
+  margin: var(--space-4) 0 0 var(--space-4);
+}
+/* 支持 CSS Grid 的浏览器：用更整齐的网格（@supports 老内核会直接忽略）*/
+@supports (display: grid) {
+  .grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: var(--space-4); margin: 0;
+  }
+  .grid > .wcard { margin: 0; max-width: none; }
+}
 .wcard {
   background: var(--surface); border-radius: var(--radius-lg); padding: var(--space-5);
   box-shadow: var(--shadow-sm); border: 2px solid transparent; transition: var(--transition);
   cursor: pointer; position: relative; overflow: hidden; min-height: 150px;
-  display: flex; flex-direction: column; gap: var(--space-2);
+  display: -webkit-box; display: -webkit-flex; display: flex;
+  -webkit-box-orient: vertical; -webkit-box-direction: normal;
+  -webkit-flex-direction: column; flex-direction: column;
+  box-sizing: border-box;
 }
-.wcard::before { content:""; position:absolute; inset:0 0 auto 0; height: 6px; background: var(--accent, var(--primary)); }
+/* 不依赖 flex gap（老内核不支持），改用子元素间距 */
+.wcard > * { margin-bottom: var(--space-2); }
+.wcard > *:last-child { margin-bottom: 0; }
+.wcard::before { content:""; position:absolute; top:0; left:0; right:0; height: 6px; background: var(--accent, var(--primary)); }
 .wcard:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); border-color: var(--border); }
 .wcard .word { font-family: var(--font-display); font-weight: 800; font-size: var(--text-lg); color: var(--text); }
 .wcard .pos { font-size: var(--text-xs); font-weight: 800; color: var(--text-muted); }
