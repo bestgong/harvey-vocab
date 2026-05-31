@@ -184,13 +184,14 @@
     var max = 600, slice = list.slice(0, max);
     grid.innerHTML = slice.map(function (w) {
       var accent = accentByPos[w.pos] || "var(--primary)";
-      return '<button class="wcard" style="--accent:' + accent + '" data-word="' + esc(w.word) + '">' +
+      // 用 div 代替 button：部分浏览器（如百度内核荣耀浏览器）对 <button> 的 display 处理异常，导致内容错位
+      return '<div class="wcard" role="button" tabindex="0" style="--accent:' + accent + '" data-word="' + esc(w.word) + '">' +
         (prog.mastered[w.word] ? '<span class="mastered-badge">⭐</span>' : '') +
         speakBtnHtml(w.word, false) +
         '<span class="word">' + esc(w.word) + '</span>' +
         '<span><span class="tag tag-pos">' + esc(w.pos || "—") + '</span></span>' +
         '<span class="meaning">' + esc(w.meaning) + '</span>' +
-        '<span class="book">📖 ' + esc(w.book) + '</span></button>';
+        '<span class="book">📖 ' + esc(w.book) + '</span></div>';
     }).join("");
     if (list.length > max) grid.innerHTML += '<div class="empty" style="grid-column:1/-1"><p class="muted">显示前 ' + max + ' 个，缩小筛选范围可查看更多</p></div>';
   }
