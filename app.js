@@ -437,8 +437,33 @@
   $("qNext").addEventListener("click", nextQuestion);
   $("rAgain").addEventListener("click", function () { showView("quiz"); });
   $("rReview").addEventListener("click", function () { showView("mistakes"); });
+  // 清空错题本需管理员密码（密码以 SHA-256 哈希形式存放，源码中不出现明文）
+  var CLEAR_PWD_HASH = "b5fcd904c8f3b83a326f5f594cbd7cc114408a8485a0c4754d78998c177d3554";
+  function sha256Hex(str) {
+    if (window.crypto && window.crypto.subtle) {
+      var data = new TextEncoder().encode(str);
+      return window.crypto.subtle.digest("SHA-256", data).then(function (buf) {
+        return Array.prototype.map.call(new Uint8Array(buf), function (b) {
+          return b.toString(16).padStart(2, "0");
+        }).join("");
+      });
+    }
+    return Promise.reject(new Error("no-subtle-crypto"));
+  }
   $("clearMistakes").addEventListener("click", function () {
-    if (confirm("确定清空错题本吗？")) { prog.mistakes = {}; saveProg(prog); renderMistakes(); updateMistakeBadge(); }
+    if (!Object.keys(prog.mistakes).length) { alert("错题本已经是空的啦～"); return; }
+    var pwd = prompt("清空错题本需要管理员密码：");
+    if (pwd === null) return; // 用户取消
+    sha256Hex(pwd).then(function (h) {
+      if (h === CLEAR_PWD_HASH) {
+        prog.mistakes = {}; saveProg(prog); renderMistakes(); updateMistakeBadge();
+        alert("错题本已清空。");
+      } else {
+        alert("密码不正确，错题本未清空。");
+      }
+    }).catch(function () {
+      alert("当前浏览器不支持密码校验，错题本未清空。");
+    });
   });
   $("modalClose").addEventListener("click", closeModal);
   $("overlay").addEventListener("click", function (e) { if (e.target === $("overlay")) closeModal(); });
