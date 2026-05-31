@@ -107,13 +107,32 @@
 
   function init() {
     var bundled = (window.VOCAB_DATA || []);
+    var settled = false;
     tryLive().then(function (live) {
-      WORDS = live; setSource("live"); boot();
+      if (settled) {
+        // 已先用本地数据启动，现在在线数据回来了 → 升级并重新渲染
+        WORDS = live; setSource("live"); rerenderAll();
+      } else {
+        settled = true; WORDS = live; setSource("live"); boot();
+      }
     }).catch(function () {
-      WORDS = bundled; setSource("local"); boot();
+      if (!settled) { settled = true; WORDS = bundled; setSource("local"); boot(); }
     });
-    // safety: if fetch hangs, fall back after 6s
-    setTimeout(function () { if (!WORDS.length) { WORDS = bundled; setSource("local"); boot(); } }, 6000);
+    // 保底：若 12s 内在线数据还没回来，先用本地数据启动（不阻塞使用）
+    // 上面的 tryLive 仍会继续试，成功后自动升级为在线
+    setTimeout(function () {
+      if (!settled) { settled = true; WORDS = bundled; setSource("local"); boot(); }
+    }, 12000);
+  }
+  function rerenderAll() {
+    try {
+      // 清空筛选下拉里动态生成的选项（保留“全部”首项），避免重复
+      ["fBook", "qBook", "fPos"].forEach(function (id) {
+        var sel = $(id); if (!sel) return;
+        while (sel.options.length > 1) sel.remove(1);
+      });
+      buildFilters(); renderBrowse(); refreshStats(); updateQuizPoolInfo();
+    } catch (e) {}
   }
 
   var booted = false;
