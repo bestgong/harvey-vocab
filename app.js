@@ -167,6 +167,7 @@
       var accent = accentByPos[w.pos] || "var(--primary)";
       return '<button class="wcard" style="--accent:' + accent + '" data-word="' + esc(w.word) + '">' +
         (prog.mastered[w.word] ? '<span class="mastered-badge">⭐</span>' : '') +
+        speakBtnHtml(w.word, false) +
         '<span class="word">' + esc(w.word) + '</span>' +
         '<span><span class="tag tag-pos">' + esc(w.pos || "—") + '</span></span>' +
         '<span class="meaning">' + esc(w.meaning) + '</span>' +
@@ -181,12 +182,42 @@
     $("statMastered").textContent = m;
   }
 
+  // ---- 发音（浏览器内置语音合成，免费、离线可用）----
+  var TTS_OK = (typeof window !== "undefined") && ("speechSynthesis" in window) && (typeof SpeechSynthesisUtterance !== "undefined");
+  function pickEnVoice() {
+    try {
+      var vs = window.speechSynthesis.getVoices() || [];
+      // 优先美式英语，其次任意英语
+      return vs.filter(function (v) { return /en[-_]US/i.test(v.lang); })[0] ||
+             vs.filter(function (v) { return /^en/i.test(v.lang); })[0] || null;
+    } catch (e) { return null; }
+  }
+  function speak(text) {
+    if (!TTS_OK || !text) return;
+    try {
+      window.speechSynthesis.cancel(); // 打断上一个，避免叠音
+      var u = new SpeechSynthesisUtterance(String(text));
+      u.lang = "en-US";
+      u.rate = 0.9; // 稍慢，便于小朋友跟读
+      var v = pickEnVoice(); if (v) u.voice = v;
+      window.speechSynthesis.speak(u);
+    } catch (e) {}
+  }
+  // 某些浏览器首次 getVoices() 为空，需等 voiceschanged 事件
+  if (TTS_OK && window.speechSynthesis.onvoiceschanged === null) {
+    window.speechSynthesis.onvoiceschanged = function () { pickEnVoice(); };
+  }
+  function speakBtnHtml(word, big) {
+    if (!TTS_OK) return "";
+    return '<button class="speak-btn' + (big ? ' speak-btn-lg' : '') + '" type="button" data-speak="' + esc(word) + '" title="点击发音" aria-label="发音">🔊</button>';
+  }
+
   // ---- Word modal ----
   function openModal(word) {
     var w = WORDS.filter(function (x) { return x.word === word; })[0]; if (!w) return;
     var isM = !!prog.mastered[w.word];
     $("modalBody").innerHTML =
-      '<div class="big-word">' + esc(w.word) + '</div>' +
+      '<div class="big-word">' + esc(w.word) + ' ' + speakBtnHtml(w.word, true) + '</div>' +
       '<div><span class="tag tag-pos">' + esc(w.pos || "—") + '</span> <span class="muted">📖 ' + esc(w.book) + '</span></div>' +
       '<div class="row"><div class="label">中文释义</div><div style="font-weight:800;font-size:var(--text-lg)">' + esc(w.meaning) + '</div></div>' +
       (w.example ? '<div class="row"><div class="label">例句</div><div class="ex">' + esc(w.example) + '</div>' +
@@ -418,6 +449,8 @@
 
   // ===================== Events =====================
   document.addEventListener("click", function (e) {
+    var sp = e.target.closest && e.target.closest(".speak-btn");
+    if (sp) { e.preventDefault(); e.stopPropagation(); speak(sp.getAttribute("data-speak")); return; }
     var card = e.target.closest && e.target.closest(".wcard"); if (card) openModal(card.getAttribute("data-word"));
     var mi = e.target.closest && e.target.closest(".mistake-item"); if (mi) openModal(mi.getAttribute("data-word"));
     var tab = e.target.closest && e.target.closest(".tab"); if (tab) showView(tab.getAttribute("data-view"));

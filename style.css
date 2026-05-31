@@ -183,6 +183,20 @@ select:hover, .search-input:hover { border-color: var(--primary); }
 .wcard .meaning { font-size: var(--text-sm); color: var(--text-muted); font-weight: 700; }
 .wcard .book { margin-top: auto; font-size: var(--text-xs); color: var(--text-faint); font-weight: 700; }
 .mastered-badge { position: absolute; top: var(--space-3); right: var(--space-3); font-size: 1.1rem; }
+/* 发音喇叭按钮 */
+.speak-btn {
+  position: absolute; top: var(--space-3); left: var(--space-3);
+  width: 32px; height: 32px; padding: 0; border: none; cursor: pointer;
+  border-radius: 50%; background: var(--bg); color: var(--text);
+  font-size: 1rem; line-height: 1; display: inline-flex; align-items: center; justify-content: center;
+  box-shadow: var(--shadow-sm); transition: var(--transition); z-index: 2;
+}
+.speak-btn:hover { background: var(--primary); color: #fff; transform: scale(1.12); }
+.speak-btn:active { transform: scale(0.95); }
+.speak-btn-lg {
+  position: static; width: 40px; height: 40px; font-size: 1.2rem;
+  vertical-align: middle; margin-left: var(--space-2);
+}
 
 .tag { display:inline-flex; align-items:center; padding: 2px var(--space-3); border-radius: var(--radius-full); font-size: var(--text-xs); font-weight: 800; }
 .tag-pos { background: var(--sky-soft); color: var(--sky); }
