@@ -184,28 +184,48 @@
 
   // ---- 发音（浏览器内置语音合成，免费、离线可用）----
   var TTS_OK = (typeof window !== "undefined") && ("speechSynthesis" in window) && (typeof SpeechSynthesisUtterance !== "undefined");
-  function pickEnVoice() {
-    try {
-      var vs = window.speechSynthesis.getVoices() || [];
-      // 优先美式英语，其次任意英语
-      return vs.filter(function (v) { return /en[-_]US/i.test(v.lang); })[0] ||
-             vs.filter(function (v) { return /^en/i.test(v.lang); })[0] || null;
-    } catch (e) { return null; }
+  var _voices = [];
+  function loadVoices() {
+    if (!TTS_OK) return;
+    try { _voices = window.speechSynthesis.getVoices() || []; } catch (e) { _voices = []; }
   }
-  function speak(text) {
-    if (!TTS_OK || !text) return;
+  function pickEnVoice() {
+    if (!_voices.length) loadVoices();
+    // 优先美式英语，其次任意英语
+    return _voices.filter(function (v) { return /en[-_]US/i.test(v.lang); })[0] ||
+           _voices.filter(function (v) { return /^en/i.test(v.lang); })[0] || null;
+  }
+  if (TTS_OK) {
+    loadVoices();
+    // 某些浏览器首次 getVoices() 为空，需等 voiceschanged 事件
+    try { window.speechSynthesis.addEventListener("voiceschanged", loadVoices); } catch (e) {}
+  }
+  var _ttsWarned = false;
+  function _ttsFail() {
+    if (_ttsWarned) return; _ttsWarned = true;
+    alert("本设备未能发出语音。\n可能原因：\n① 系统未安装英语语音包（Windows/安卓设置里可添加“英语语音”）\n② 手机处于静音或媒体音量为 0\n③ 微信/部分国产浏览器不支持，请改用 Chrome 或 Safari");
+  }
+  function _doSpeak(text) {
     try {
-      window.speechSynthesis.cancel(); // 打断上一个，避免叠音
       var u = new SpeechSynthesisUtterance(String(text));
       u.lang = "en-US";
       u.rate = 0.9; // 稍慢，便于小朋友跟读
       var v = pickEnVoice(); if (v) u.voice = v;
+      u.onerror = function (ev) { if (ev && ev.error && ev.error !== "interrupted" && ev.error !== "canceled") _ttsFail(); };
       window.speechSynthesis.speak(u);
-    } catch (e) {}
+    } catch (e) { _ttsFail(); }
   }
-  // 某些浏览器首次 getVoices() 为空，需等 voiceschanged 事件
-  if (TTS_OK && window.speechSynthesis.onvoiceschanged === null) {
-    window.speechSynthesis.onvoiceschanged = function () { pickEnVoice(); };
+  function speak(text) {
+    if (!TTS_OK || !text) return;
+    try {
+      // 部分浏览器引擎会被挂起，需先唤醒
+      if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+      var speaking = window.speechSynthesis.speaking || window.speechSynthesis.pending;
+      window.speechSynthesis.cancel(); // 打断上一个，避免叠音
+      // Chrome 已知 bug：cancel 紧跟 speak 会被吞，上一句还在说时稍延迟再读
+      if (speaking) { setTimeout(function () { _doSpeak(text); }, 120); }
+      else { _doSpeak(text); }
+    } catch (e) {}
   }
   function speakBtnHtml(word, big) {
     if (!TTS_OK) return "";
