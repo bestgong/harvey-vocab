@@ -200,35 +200,66 @@
     // 某些浏览器首次 getVoices() 为空，需等 voiceschanged 事件
     try { window.speechSynthesis.addEventListener("voiceschanged", loadVoices); } catch (e) {}
   }
-  var _ttsWarned = false;
-  function _ttsFail() {
-    if (_ttsWarned) return; _ttsWarned = true;
-    alert("本设备未能发出语音。\n可能原因：\n① 系统未安装英语语音包（Windows/安卓设置里可添加“英语语音”）\n② 手机处于静音或媒体音量为 0\n③ 微信/部分国产浏览器不支持，请改用 Chrome 或 Safari");
-  }
-  function _doSpeak(text) {
-    try {
-      var u = new SpeechSynthesisUtterance(String(text));
-      u.lang = "en-US";
-      u.rate = 0.9; // 稍慢，便于小朋友跟读
-      var v = pickEnVoice(); if (v) u.voice = v;
-      u.onerror = function (ev) { if (ev && ev.error && ev.error !== "interrupted" && ev.error !== "canceled") _ttsFail(); };
-      window.speechSynthesis.speak(u);
-    } catch (e) { _ttsFail(); }
-  }
-  function speak(text) {
+  // 本地合成音（兼底）
+  function _localSpeak(text) {
     if (!TTS_OK || !text) return;
     try {
-      // 部分浏览器引擎会被挂起，需先唤醒
       if (window.speechSynthesis.paused) window.speechSynthesis.resume();
       var speaking = window.speechSynthesis.speaking || window.speechSynthesis.pending;
-      window.speechSynthesis.cancel(); // 打断上一个，避免叠音
-      // Chrome 已知 bug：cancel 紧跟 speak 会被吞，上一句还在说时稍延迟再读
-      if (speaking) { setTimeout(function () { _doSpeak(text); }, 120); }
-      else { _doSpeak(text); }
+      window.speechSynthesis.cancel();
+      var doIt = function () {
+        try {
+          var u = new SpeechSynthesisUtterance(String(text));
+          u.lang = "en-US"; u.rate = 0.9;
+          var v = pickEnVoice(); if (v) u.voice = v;
+          window.speechSynthesis.speak(u);
+        } catch (e) {}
+      };
+      if (speaking) setTimeout(doIt, 120); else doIt();
     } catch (e) {}
   }
+
+  // 方案 B：在线真人词典发音（有道，美音）+ 本地合成音兼底
+  var _audio = null;        // 复用一个 audio 对象
+  var _audioTimer = null;
+  function _onlineAudioUrl(word) {
+    // type=2 美音，type=1 英音
+    return "https://dict.youdao.com/dictvoice?audio=" + encodeURIComponent(word) + "&type=2";
+  }
+  function speak(text) {
+    if (!text) return;
+    var word = String(text).trim();
+    // 先停掉上一次的播放与合成
+    try { if (TTS_OK) window.speechSynthesis.cancel(); } catch (e) {}
+    if (_audioTimer) { clearTimeout(_audioTimer); _audioTimer = null; }
+    if (_audio) { try { _audio.pause(); } catch (e) {} _audio = null; }
+
+    var fellBack = false;
+    var fallback = function () {
+      if (fellBack) return; fellBack = true;
+      _localSpeak(word); // 在线失败 → 本地合成音
+    };
+    try {
+      var a = new Audio(_onlineAudioUrl(word));
+      _audio = a;
+      a.preload = "auto";
+      // 3.5s 还没能播 → 兼底
+      _audioTimer = setTimeout(fallback, 3500);
+      a.addEventListener("playing", function () { if (_audioTimer) { clearTimeout(_audioTimer); _audioTimer = null; } });
+      a.addEventListener("error", function () { if (_audioTimer) { clearTimeout(_audioTimer); _audioTimer = null; } fallback(); });
+      var p = a.play();
+      if (p && typeof p.then === "function") {
+        p.then(function () {
+          if (_audioTimer) { clearTimeout(_audioTimer); _audioTimer = null; }
+        }).catch(function () {
+          if (_audioTimer) { clearTimeout(_audioTimer); _audioTimer = null; }
+          fallback(); // 自动播放被拦/加载失败 → 兼底
+        });
+      }
+    } catch (e) { fallback(); }
+  }
   function speakBtnHtml(word, big) {
-    if (!TTS_OK) return "";
+    // 方案 B 不依赖本地语音包，按钮始终显示
     return '<button class="speak-btn' + (big ? ' speak-btn-lg' : '') + '" type="button" data-speak="' + esc(word) + '" title="点击发音" aria-label="发音">🔊</button>';
   }
 
