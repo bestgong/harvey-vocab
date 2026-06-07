@@ -9582,11 +9582,11 @@
 },
 {
 "id": 872,
-"word": "v.",
-"pos": "phr.",
+"word": "Deal!",
+"pos": "int.",
 "meaning": "成交，口语中就是一言为定的意思。",
-"example": "",
-"exampleZh": "",
+"example": "Deal!",
+"exampleZh": "成交！（一言为定！）",
 "note": "",
 "book": "I Will Surprise My Friend!",
 "date": "2026-05-30"
@@ -13377,11 +13377,11 @@
 },
 {
 "id": 1217,
-"word": "v.",
-"pos": "phr.",
+"word": "dance",
+"pos": "v.",
 "meaning": "跳舞",
-"example": "",
-"exampleZh": "",
+"example": "It is the best day to dance pig dances!",
+"exampleZh": "扭小猪舞的好日子！",
 "note": "",
 "book": "Happy Pig Day!",
 "date": "2026-05-30"

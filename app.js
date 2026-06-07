@@ -339,11 +339,14 @@
     var picked = shuffle(pool);
     if (count > 0) picked = picked.slice(0, count);
 
+    // guard: skip entries whose word field is actually a part-of-speech token (bad data)
+    var POS_ONLY = /^(v|n|adj|adv|prep|conj|pron|phr|int|num|art|aux)\.?$/i;
     // distractor pool by meaning/word
     return picked.map(function (w) {
       var q = { w: w, mode: mode };
       if (mode === "zh2en" || mode === "en2zh") {
         var others = shuffle(WORDS.filter(function (x) {
+          if (POS_ONLY.test(String(x.word).trim())) return false;
           return x.word !== w.word && (mode === "zh2en" ? x.word !== w.word : x.meaning && x.meaning !== w.meaning);
         })).slice(0, 3);
         var opts = others.map(function (x) { return mode === "zh2en" ? x.word : x.meaning; });
