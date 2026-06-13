@@ -239,44 +239,90 @@
     } catch (e) {}
   }
 
+  // 方案 A：清洗发音文本，使有道接口能正确返回真人发音
+  // 去省略号(换空格防粘连)、去占位符 sth./sb./sₒ.、去句末标点、压缩空格
+  function _cleanForSpeech(text) {
+    var s = String(text || "");
+    s = s.replace(/[…]+/g, " ");          // 省略号 → 空格
+    s = s.replace(/\.\.\.+/g, " ");        // 三个点 → 空格
+    s = s.replace(/\bsth\.?/gi, " ");      // 占位符 sth.
+    s = s.replace(/\bsb\.?/gi, " ");       // 占位符 sb.
+    s = s.replace(/\bsₒ\.?/gi, " ");
+    s = s.replace(/[\/]+/g, " ");          // 斜杠（如 zig / zag）
+    s = s.replace(/[.!?,;:]+$/g, "");      // 句末标点
+    s = s.replace(/[.!?,;:]+/g, " ");      // 中间标点 → 空格
+    s = s.replace(/\s+/g, " ").trim();     // 压缩空格
+    return s;
+  }
+
   // 方案 B：在线真人词典发音（有道，美音）+ 本地合成音兼底
   var _audio = null;        // 复用一个 audio 对象
-  var _audioTimer = null;
+  var _seq = 0;             // 播放序号，防止旧请求覆盖新请求
   function _onlineAudioUrl(word) {
     // type=2 美音，type=1 英音
     return "https://dict.youdao.com/dictvoice?audio=" + encodeURIComponent(word) + "&type=2";
   }
+  // 预生成 mp3 映射（audio_map.js 注入 window.AUDIO_MAP）：清理后文本 -> 文件名
+  function _prebuiltAudio(clean) {
+    var map = (typeof window !== "undefined" && window.AUDIO_MAP) ? window.AUDIO_MAP : null;
+    if (!map) return null;
+    if (map[clean]) return map[clean];
+    // 大小写兜底
+    var lk = clean.toLowerCase();
+    for (var k in map) { if (Object.prototype.hasOwnProperty.call(map, k) && k.toLowerCase() === lk) return map[k]; }
+    return null;
+  }
   function speak(text) {
     if (!text) return;
-    var word = String(text).trim();
-    // 先停掉上一次的播放与合成
+    var raw = String(text).trim();
+    var clean = _cleanForSpeech(raw) || raw;
+    var mySeq = ++_seq;
+    // 停掉上一次的播放与合成
     try { if (TTS_OK) window.speechSynthesis.cancel(); } catch (e) {}
-    if (_audioTimer) { clearTimeout(_audioTimer); _audioTimer = null; }
     if (_audio) { try { _audio.pause(); } catch (e) {} _audio = null; }
 
-    var fellBack = false;
-    var fallback = function () {
-      if (fellBack) return; fellBack = true;
-      _localSpeak(word); // 在线失败 → 本地合成音
+    var settled = false;
+    var toLocal = function () {
+      if (settled) return; settled = true;
+      if (mySeq === _seq) _localSpeak(clean);   // 最终降级 B 合成音
     };
+    var ok = function () { settled = true; };
+
+    // ===== 中间层：预生成 mp3（托管在本站，平板也能读）=====
+    // 有道读不出的词组已离线生成真人 mp3；优先播放，平板（无 speechSynthesis、无法访问有道）也能发音
+    var pre = _prebuiltAudio(clean);
+    if (pre) {
+      try {
+        var pa = new Audio("audio/" + pre); _audio = pa; pa.preload = "auto";
+        pa.addEventListener("canplay", ok);
+        pa.addEventListener("playing", ok);
+        pa.addEventListener("error", function () { _tryYoudao(clean, mySeq, function(){return settled;}, function(v){settled=v;}, ok, toLocal); });
+        var pp = pa.play();
+        if (pp && typeof pp.then === "function") {
+          pp.catch(function () { _tryYoudao(clean, mySeq, function(){return settled;}, function(v){settled=v;}, ok, toLocal); });
+        }
+        setTimeout(function () { if (!settled && mySeq === _seq) toLocal(); }, 5000);
+        return;
+      } catch (e) { /* 落到有道 */ }
+    }
+    // ===== 方案 A：有道真人发音 =====
+    _tryYoudao(clean, mySeq, function(){return settled;}, function(v){settled=v;}, ok, toLocal);
+  }
+  // 方案 A：有道 <audio>（不受 CORS 限制）。读不出 → error/JSON → 降级 B
+  function _tryYoudao(clean, mySeq, getSettled, setSettled, ok, toLocal) {
+    if (getSettled()) return;
+    var url = _onlineAudioUrl(clean);
     try {
-      var a = new Audio(_onlineAudioUrl(word));
-      _audio = a;
-      a.preload = "auto";
-      // 3.5s 还没能播 → 兼底
-      _audioTimer = setTimeout(fallback, 3500);
-      a.addEventListener("playing", function () { if (_audioTimer) { clearTimeout(_audioTimer); _audioTimer = null; } });
-      a.addEventListener("error", function () { if (_audioTimer) { clearTimeout(_audioTimer); _audioTimer = null; } fallback(); });
+      var a = new Audio(url); _audio = a; a.preload = "auto";
+      a.addEventListener("canplay", ok);
+      a.addEventListener("playing", ok);
+      a.addEventListener("error", toLocal);
+      setTimeout(function () { if (!getSettled() && mySeq === _seq) toLocal(); }, 4000);
       var p = a.play();
       if (p && typeof p.then === "function") {
-        p.then(function () {
-          if (_audioTimer) { clearTimeout(_audioTimer); _audioTimer = null; }
-        }).catch(function () {
-          if (_audioTimer) { clearTimeout(_audioTimer); _audioTimer = null; }
-          fallback(); // 自动播放被拦/加载失败 → 兼底
-        });
+        p.catch(function () { toLocal(); });
       }
-    } catch (e) { fallback(); }
+    } catch (e) { toLocal(); }
   }
   function speakBtnHtml(word, big) {
     // 方案 B 不依赖本地语音包，按钮始终显示

@@ -1893,7 +1893,7 @@
 },
 {
 "id": 173,
-"word": "light a fire n",
+"word": "light a fire",
 "pos": "phr.",
 "meaning": "点火，生火",
 "example": "Big Pig is lighting a fire.",
@@ -5809,7 +5809,7 @@
 },
 {
 "id": 529,
-"word": "once up a time",
+"word": "once upon a time",
 "pos": "phr.",
 "meaning": "从前",
 "example": "Once upon a time, Bear had a long, thick tail.",
@@ -10517,11 +10517,11 @@
 },
 {
 "id": 957,
-"word": "than perp.",
-"pos": "phr.",
+"word": "than",
+"pos": "conj.",
 "meaning": "比",
-"example": "",
-"exampleZh": "",
+"example": "You took more than one ball.",
+"exampleZh": "你拿走了不止一个球。",
 "note": "",
 "book": "A Big Guy Took My Ball!",
 "date": "2026-05-30"
