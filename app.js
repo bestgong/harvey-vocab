@@ -108,6 +108,8 @@
   function init() {
     var bundled = (window.VOCAB_DATA || []);
     var settled = false;
+    // 后台静默预取所有预生成 mp3，点击发音时直接命中缓存（延迟 2s 启动，先让词库数据加载）
+    try { setTimeout(_prefetchAudio, 2000); } catch (e) {}
     tryLive().then(function (live) {
       if (settled) {
         // 已先用本地数据启动，现在在线数据回来了 → 升级并重新渲染
@@ -262,6 +264,33 @@
     // type=2 美音，type=1 英音
     return "https://dict.youdao.com/dictvoice?audio=" + encodeURIComponent(word) + "&type=2";
   }
+  // 预取缓存：文件名 -> blob URL，命中后点击即秒播（避免每次从 GitHub 重新下载）
+  var _audioCache = {};
+  var _prefetchStarted = false;
+  function _prefetchAudio() {
+    if (_prefetchStarted) return;
+    _prefetchStarted = true;
+    var map = (typeof window !== "undefined" && window.AUDIO_MAP) ? window.AUDIO_MAP : null;
+    if (!map) return;
+    var files = [];
+    for (var k in map) { if (Object.prototype.hasOwnProperty.call(map, k)) files.push(map[k]); }
+    files = files.filter(function (f, i) { return files.indexOf(f) === i; });
+    var idx = 0;
+    function next() {
+      if (idx >= files.length) return;
+      var fn = files[idx++];
+      if (_audioCache[fn]) { next(); return; }
+      try {
+        fetch("audio/" + fn, { cache: "force-cache" })
+          .then(function (r) { return r.ok ? r.blob() : null; })
+          .then(function (b) { if (b) { try { _audioCache[fn] = URL.createObjectURL(b); } catch (e) {} } })
+          .catch(function () {})
+          .then(function () { next(); });
+      } catch (e) { next(); }
+    }
+    // 并发 3 个，平衡速度与带宽
+    next(); next(); next();
+  }
   // 预生成 mp3 映射（audio_map.js 注入 window.AUDIO_MAP）：清理后文本 -> 文件名
   function _prebuiltAudio(clean) {
     var map = (typeof window !== "undefined" && window.AUDIO_MAP) ? window.AUDIO_MAP : null;
@@ -293,15 +322,19 @@
     var pre = _prebuiltAudio(clean);
     if (pre) {
       try {
-        var pa = new Audio("audio/" + pre); _audio = pa; pa.preload = "auto";
+        // 命中预取缓存 → 用 blob URL 秒播；否则直连文件
+        var src = _audioCache[pre] ? _audioCache[pre] : ("audio/" + pre);
+        var pa = new Audio(src); _audio = pa; pa.preload = "auto";
         pa.addEventListener("canplay", ok);
         pa.addEventListener("playing", ok);
         pa.addEventListener("error", function () { _tryYoudao(clean, mySeq, function(){return settled;}, function(v){settled=v;}, ok, toLocal); });
+        try { pa.load(); } catch (e) {}   // 显式触发加载，缩短首次响应
         var pp = pa.play();
         if (pp && typeof pp.then === "function") {
           pp.catch(function () { _tryYoudao(clean, mySeq, function(){return settled;}, function(v){settled=v;}, ok, toLocal); });
         }
-        setTimeout(function () { if (!settled && mySeq === _seq) toLocal(); }, 5000);
+        // 缓存命中走得很快；未命中给 3.5s 后降级有道
+        setTimeout(function () { if (!settled && mySeq === _seq) _tryYoudao(clean, mySeq, function(){return settled;}, function(v){settled=v;}, ok, toLocal); }, 3500);
         return;
       } catch (e) { /* 落到有道 */ }
     }
