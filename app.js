@@ -398,10 +398,61 @@
     });
     return list;
   }
+  // Return a case-insensitive regex that matches the word or any common
+  // inflected form of the last token (-s/-es/-ed/-ing/-ies, doubled consonant).
+  // Phrases ("put on", "go inside") inflect only the first token verb; we try
+  // both the given form and its variants for the first token, keeping rest as-is.
+  function wordFormRegex(word) {
+    if (!word) return null;
+    var esc = function (s) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); };
+    var toks = String(word).trim().split(/\s+/);
+    function variants(tok) {
+      if (!/^[a-zA-Z]+$/.test(tok)) return [esc(tok)];
+      var t = tok.toLowerCase();
+      var v = [t];
+      // add -s / -es
+      v.push(t + "s");
+      if (/(s|x|z|ch|sh|o)$/.test(t)) v.push(t + "es");
+      // consonant+y → ies (e.g. try→tries)
+      if (/[^aeiou]y$/.test(t)) v.push(t.slice(0, -1) + "ies");
+      // -ed (skip if already -ed)
+      if (!/ed$/.test(t)) {
+        v.push(t + "ed");
+        if (/e$/.test(t)) v.push(t + "d");
+        if (/[^aeiou]y$/.test(t)) v.push(t.slice(0, -1) + "ied");
+      }
+      // -ing
+      if (!/ing$/.test(t)) {
+        v.push(t + "ing");
+        if (/e$/.test(t) && t.length > 2) v.push(t.slice(0, -1) + "ing");
+      }
+      // dedupe
+      var seen = {}; var out = [];
+      v.forEach(function (x) { if (!seen[x]) { seen[x] = 1; out.push(x); } });
+      return out.map(esc);
+    }
+    var pattern;
+    if (toks.length === 1) {
+      pattern = "(?:" + variants(toks[0]).join("|") + ")";
+    } else {
+      // First-token variants + literal rest, joined by any whitespace
+      var rest = toks.slice(1).map(esc).join("\\s+");
+      pattern = "(?:" + variants(toks[0]).join("|") + ")\\s+" + rest;
+    }
+    // Word boundaries when starts/ends with letter
+    var pre = /^[a-zA-Z]/.test(word) ? "\\b" : "";
+    var post = /[a-zA-Z]$/.test(word) ? "\\b" : "";
+    return new RegExp(pre + pattern + post, "i");
+  }
+  function exampleHasWord(w) {
+    if (!w || !w.example || !w.word) return false;
+    var re = wordFormRegex(w.word);
+    return re ? re.test(w.example) : false;
+  }
   function updateQuizPoolInfo() {
     var n = quizPool().length;
     var needEx = selectedMode === "cloze";
-    var usable = needEx ? quizPool().filter(function (w) { return w.example && w.example.toLowerCase().indexOf(String(w.word).toLowerCase()) >= 0; }).length : n;
+    var usable = needEx ? quizPool().filter(exampleHasWord).length : n;
     var msg = "当前题库共 " + n + " 个单词";
     if (needEx) msg += "（其中 " + usable + " 个带可用例句）";
     $("quizPoolInfo").textContent = msg;
@@ -411,7 +462,7 @@
     var mode = selectedMode;
     var pool = quizPool();
     if (mode === "cloze") {
-      pool = pool.filter(function (w) { return w.example && w.example.toLowerCase().indexOf(String(w.word).toLowerCase()) >= 0; });
+      pool = pool.filter(exampleHasWord);
     }
     if (pool.length < 1) return null;
     var count = parseInt($("qCount").value, 10);
@@ -467,7 +518,10 @@
         '<div class="options" id="opts"></div>';
       renderOptions(q);
     } else if (q.mode === "cloze") {
-      var re = new RegExp(w.word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+      var re = wordFormRegex(w.word);
+      // Capture the actual matched form so we can accept it as an answer too
+      var matched = w.example.match(re);
+      q.matchedForm = matched ? matched[0] : w.word;
       var sentence = w.example.replace(re, '<span class="blank">____</span>');
       body.innerHTML = '<div class="q-prompt center">在句子空格里填入正确的单词</div>' +
         '<div class="q-example">' + sentence + '</div>' +
@@ -515,9 +569,14 @@
     input.focus();
     function go() {
       if (input.disabled) return;
-      var val = input.value.trim().toLowerCase();
+      var val = input.value.trim().toLowerCase().replace(/\s+/g, " ");
       var ans = q.w.word.trim().toLowerCase();
       var correct = val === ans;
+      // For cloze, also accept the exact inflected form present in the example
+      if (!correct && q.mode === "cloze" && q.matchedForm) {
+        var mf = q.matchedForm.trim().toLowerCase().replace(/\s+/g, " ");
+        if (val === mf) correct = true;
+      }
       input.disabled = true; submit.classList.add("hidden");
       input.style.borderColor = correct ? "var(--leaf)" : "var(--error)";
       finishAnswer(q, correct, q.w.word);
