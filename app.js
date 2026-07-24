@@ -399,9 +399,98 @@
     return list;
   }
   // Return a case-insensitive regex that matches the word or any common
-  // inflected form of the last token (-s/-es/-ed/-ing/-ies, doubled consonant).
-  // Phrases ("put on", "go inside") inflect only the first token verb; we try
-  // both the given form and its variants for the first token, keeping rest as-is.
+  // inflected form (-s/-es/-ed/-ing/-ies/doubled-consonant/irregular past).
+  // Phrases inflect the first content token; we also allow a possessive noun
+  // or short interposed noun phrase between phrase tokens (e.g. "take X's picture",
+  // "put skates on him"). We also inflect noun tokens like "mask" → "masks".
+  var IRREGULAR_PAST = {
+    be: ["was", "were", "been", "being"],
+    beat: ["beat", "beaten"],
+    become: ["became"],
+    begin: ["began", "begun"],
+    bite: ["bit", "bitten"],
+    blow: ["blew", "blown"],
+    break: ["broke", "broken"],
+    bring: ["brought"],
+    build: ["built"],
+    buy: ["bought"],
+    catch: ["caught"],
+    choose: ["chose", "chosen"],
+    come: ["came"],
+    cost: ["cost"],
+    cut: ["cut"],
+    dig: ["dug"],
+    do: ["did", "done", "does"],
+    draw: ["drew", "drawn"],
+    drink: ["drank", "drunk"],
+    drive: ["drove", "driven"],
+    eat: ["ate", "eaten"],
+    fall: ["fell", "fallen"],
+    feed: ["fed"],
+    feel: ["felt"],
+    fight: ["fought"],
+    find: ["found"],
+    fly: ["flew", "flown"],
+    forget: ["forgot", "forgotten"],
+    get: ["got", "gotten"],
+    give: ["gave", "given"],
+    go: ["went", "gone", "goes"],
+    grow: ["grew", "grown"],
+    hang: ["hung"],
+    have: ["had", "has"],
+    hear: ["heard"],
+    hide: ["hid", "hidden"],
+    hit: ["hit"],
+    hold: ["held"],
+    keep: ["kept"],
+    know: ["knew", "known"],
+    lay: ["laid"],
+    lead: ["led"],
+    leave: ["left"],
+    lend: ["lent"],
+    let: ["let"],
+    lie: ["lay", "lain"],
+    lose: ["lost"],
+    make: ["made"],
+    mean: ["meant"],
+    meet: ["met"],
+    pay: ["paid"],
+    put: ["put"],
+    read: ["read"],
+    ride: ["rode", "ridden"],
+    ring: ["rang", "rung"],
+    rise: ["rose", "risen"],
+    run: ["ran", "run"],
+    say: ["said"],
+    see: ["saw", "seen"],
+    seek: ["sought"],
+    sell: ["sold"],
+    send: ["sent"],
+    set: ["set"],
+    shake: ["shook", "shaken"],
+    shine: ["shone"],
+    shoot: ["shot"],
+    show: ["showed", "shown"],
+    shut: ["shut"],
+    sing: ["sang", "sung"],
+    sit: ["sat"],
+    sleep: ["slept"],
+    speak: ["spoke", "spoken"],
+    spend: ["spent"],
+    stand: ["stood"],
+    steal: ["stole", "stolen"],
+    swim: ["swam", "swum"],
+    take: ["took", "taken"],
+    teach: ["taught"],
+    tell: ["told"],
+    think: ["thought"],
+    throw: ["threw", "thrown"],
+    understand: ["understood"],
+    wake: ["woke", "woken"],
+    wear: ["wore", "worn"],
+    win: ["won"],
+    write: ["wrote", "written"]
+  };
   function wordFormRegex(word) {
     if (!word) return null;
     var esc = function (s) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); };
@@ -410,36 +499,48 @@
       if (!/^[a-zA-Z]+$/.test(tok)) return [esc(tok)];
       var t = tok.toLowerCase();
       var v = [t];
-      // add -s / -es
+      // -s / -es
       v.push(t + "s");
       if (/(s|x|z|ch|sh|o)$/.test(t)) v.push(t + "es");
-      // consonant+y → ies (e.g. try→tries)
+      // consonant + y → ies
       if (/[^aeiou]y$/.test(t)) v.push(t.slice(0, -1) + "ies");
-      // -ed (skip if already -ed)
+      // -ed / -d / -ied / doubled + ed
       if (!/ed$/.test(t)) {
         v.push(t + "ed");
         if (/e$/.test(t)) v.push(t + "d");
         if (/[^aeiou]y$/.test(t)) v.push(t.slice(0, -1) + "ied");
+        // Doubled consonant + ed: CVC where last letter isn't w/x/y and t length >=3
+        if (/[^aeiouwxy]$/.test(t) && /[aeiou][^aeiouwxy]$/.test(t) && !/[aeiou][aeiou][^aeiouwxy]$/.test(t) && t.length >= 3) {
+          v.push(t + t.slice(-1) + "ed");
+        }
       }
-      // -ing
+      // -ing / doubled + ing
       if (!/ing$/.test(t)) {
         v.push(t + "ing");
         if (/e$/.test(t) && t.length > 2) v.push(t.slice(0, -1) + "ing");
+        if (/[^aeiouwxy]$/.test(t) && /[aeiou][^aeiouwxy]$/.test(t) && !/[aeiou][aeiou][^aeiouwxy]$/.test(t) && t.length >= 3) {
+          v.push(t + t.slice(-1) + "ing");
+        }
       }
+      // Irregular past/participle
+      if (IRREGULAR_PAST[t]) v = v.concat(IRREGULAR_PAST[t]);
       // dedupe
       var seen = {}; var out = [];
       v.forEach(function (x) { if (!seen[x]) { seen[x] = 1; out.push(x); } });
       return out.map(esc);
     }
+    // Between phrase tokens, allow optional short filler (0-3 short words:
+    // possessives / determiners / pronouns) that stay within the same clause.
+    // Filler tokens exclude punctuation so we don't cross sentence boundaries.
+    var GAP = "\\s+(?:[A-Za-z][A-Za-z'\u2019-]{0,20}\\s+){0,3}";
     var pattern;
     if (toks.length === 1) {
       pattern = "(?:" + variants(toks[0]).join("|") + ")";
     } else {
-      // First-token variants + literal rest, joined by any whitespace
-      var rest = toks.slice(1).map(esc).join("\\s+");
-      pattern = "(?:" + variants(toks[0]).join("|") + ")\\s+" + rest;
+      // Each intermediate token allowed variants; connectors allow small gaps.
+      var parts = toks.map(function (tk) { return "(?:" + variants(tk).join("|") + ")"; });
+      pattern = parts.join(GAP);
     }
-    // Word boundaries when starts/ends with letter
     var pre = /^[a-zA-Z]/.test(word) ? "\\b" : "";
     var post = /[a-zA-Z]$/.test(word) ? "\\b" : "";
     return new RegExp(pre + pattern + post, "i");
