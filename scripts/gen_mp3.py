@@ -23,6 +23,10 @@ PHRASES = [
     "went home to eat it",
     "After they ate",
     "kept right on doing",
+    # Grizzwold (2026-07-25): Youdao TTS 不能发音
+    "prairie wolf",
+    "desert lizard",
+    "bearskin rug",
 ]
 
 def slugify(text):
