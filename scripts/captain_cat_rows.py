@@ -1,0 +1,225 @@
+#!/usr/bin/env python3
+"""Captain Cat (汪培珽 L1-8) 词条 — 生成 add_rows JSON payload。"""
+import json
+
+BOOK = "中级-2 汪培珽L1-8 Captain Cat"
+DATE = "2026-08-13"
+
+# 从 id 2311 开始（Stanley 到 2310）
+entries = [
+    # (word, pos, meaning, example, exampleZh_non_leaking, note)
+    # ── Page 6-7 参军 ─────────────────────────────
+    ("join the army", "v. 短语", "参军（过去式：joined）",
+     "Captain Cat joined the army.", "猫上校___。",
+     "joined 是 join 的过去式；army=军队。"),
+    ("nobody", "pron.", "没有人",
+     "He went in when nobody was looking.", "他趁着___看的时候溜了进去。",
+     "= no one；反义 everybody。"),
+
+    # ── Page 8-9 队列行进 ─────────────────────────────
+    ("soldier", "n.", "士兵，军人",
+     "The soldiers marched in a parade.", "___们列队行进。",
+     "复数 soldiers。"),
+    ("march in a parade", "v. 短语", "队列行进（过去式：marched）",
+     "The soldiers marched in a parade.", "士兵们___。",
+     "parade=游行/阅兵。"),
+
+    # ── Page 10-11 步调一致 ─────────────────────────
+    ("keep in step", "v. 短语", "保持步调一致（过去式：kept）",
+     "Captain Cat kept in step.", "猫上校___。",
+     "kept 是 keep 的过去式；in step=步调一致。"),
+    ("one foot from the other", "n. 短语", "从一只脚换到另一只脚",
+     "He knew one foot from the other.", "他懂得如何___。",
+     "描述走步；对比 the other=另一只。"),
+
+    # ── Page 12-13 臂章比喻 ─────────────────────────
+    ("stripe", "n.", "（军装上表示等级的）臂章，条纹，线条",
+     "That cat has more stripes than we have.", "那只猫身上的___比我们还多。",
+     "复数 stripes；军装臂章亦称 stripe。"),
+    ("corporal", "n.", "（陆军、海军陆战队或英国空军的）下士",
+     "said a corporal to a sergeant.", "一名___对一名中士说道。",
+     "军衔低于 sergeant。"),
+    ("sergeant", "n.", "（陆军、海军陆战队或空军的）中士",
+     "Another sergeant looked at the cat.", "另一名___看着那只猫。",
+     "军衔高于 corporal。"),
+
+    # ── Page 14 从那时起 ─────────────────────────────
+    ("from then on", "adv. 短语", "从那时起",
+     "From then on everybody started saying, Here, Captain Cat.", "___大家开始叫他猫上校。",
+     "then=那时；on=继续下去。"),
+    ("instead of", "prep. 短语", "代替；而不是……",
+     "Here, Captain Cat, instead of Here, kitty kitty.", "叫他猫上校，___叫他小猫咪。",
+     "后跟名词或动名词。"),
+
+    # ── Page 16-17 打扫卫生间 ─────────────────────────
+    ("sometimes", "adv.", "有时，间或",
+     "But sometimes the soldiers had no time for Captain Cat.", "但___士兵们没时间陪猫上校。",
+     "频率副词；比 often 少、比 seldom 多。"),
+    ("had no time for", "v. 短语", "没有时间（have 的过去式）",
+     "The soldiers had no time for Captain Cat.", "士兵们___猫上校。",
+     "have no time for sb/sth。"),
+    ("clean the bathroom", "v. 短语", "打扫卫生间",
+     "I have to clean the bathrooms.", "我得去___。",
+     "bathroom=浴室/卫生间。"),
+
+    # ── Page 18-19 皮特总是有时间 ─────────────────────
+    ("sweep the ground", "v. 短语", "清扫地面",
+     "I have to sweep the grounds.", "我得去___。",
+     "sweep 的过去式=swept；ground 可数化指场地。"),
+    ("found time for", "v. 短语", "找时间（find 的过去式）",
+     "Pete always found time for Captain Cat.", "皮特总是___猫上校。",
+     "find-found-found；find time for sb。"),
+    ("guard duty", "n. 短语", "警卫值班，警卫任务",
+     "even when he was on guard duty.", "即使他在___的时候也是如此。",
+     "on guard duty=在值岗。"),
+    ("remind sb of", "v. 短语", "提醒某人某事；使某人想起",
+     "You remind me of a cat back home.", "你让我___家里的一只猫。",
+     "remind sb of sth/sb=使某人联想到。"),
+    ("scratch", "v.", "（用指甲）挠（过去式：scratched）",
+     "and scratched Captain Cat behind the ears.", "他还在猫上校的耳朵后面___。",
+     "scratched 是 scratch 的过去式。"),
+
+    # ── Page 20-21 陷入困境 ─────────────────────────
+    ("play with", "v. 短语", "同……一起玩",
+     "Pete played with Captain Cat so much.", "皮特___猫上校太多了。",
+     "played 是 play 的过去式。"),
+    ("so much", "adv. 短语", "这么多，那么多",
+     "Pete played with Captain Cat so much, he got into trouble.", "皮特和猫上校玩得___，结果惹上麻烦。",
+     "程度副词；so + much。"),
+    ("get into trouble", "v. 短语", "使自己或他人陷入困境（过去式：got）",
+     "he got into trouble.", "他___。",
+     "got 是 get 的过去式；trouble=麻烦。"),
+
+    # ── Page 22 厨房值班 ─────────────────────────────
+    ("kitchen", "n.", "厨房",
+     "The general made Pete do kitchen duty.", "将军让皮特去___值班。",
+     "kitchen duty=厨房值勤。"),
+    ("duty", "n.", "责任，义务；上班，值班",
+     "The general made Pete do kitchen duty.", "将军让皮特去厨房___。",
+     "on duty=值班中；off duty=下班。"),
+    ("keep company", "v. 短语", "陪伴（某人）（过去式：kept）",
+     "Captain Cat kept him company.", "猫上校___。",
+     "keep sb company=陪某人。"),
+    ("potato peels", "n. 短语", "土豆皮",
+     "Pete let Captain Cat play with the potato peels.", "皮特让猫上校玩___。",
+     "peel=（果、菜）皮。"),
+    ("buddy", "n.", "<非正式>朋友，伙伴，搭档",
+     "Are you my buddy? asked Pete.", "皮特问：\"你是我的___吗？\"",
+     "美式口语；= pal/friend。"),
+
+    # ── Page 24-25 军号响起 ─────────────────────────
+    ("bugle", "n.", "喇叭，军号",
+     "The next morning a bugle blew.", "第二天早上，___响了起来。",
+     "blew 是 blow 的过去式。"),
+    ("hate", "v.", "厌恶，不喜欢（过去式：hated）",
+     "Oh, how Pete hated to get up!", "哦，皮特多么___起床啊！",
+     "hated 是 hate 的过去式。"),
+    ("get up", "v. 短语", "起床",
+     "how Pete hated to get up!", "皮特多么讨厌___啊！",
+     "反义 go to bed。"),
+    ("spring", "v.", "跳，跃（过去式：sprang）",
+     "But Captain Cat sprang right out of bed.", "但猫上校一下从床上___起来。",
+     "sprang 是 spring 的过去式。"),
+    ("sprang right out of bed", "v. 短语", "从床上一跃而起",
+     "Captain Cat sprang right out of bed.", "猫上校___。",
+     "right=正好、径直；加强语气。"),
+
+    # ── Page 26-27 检查垃圾箱 ─────────────────────────
+    ("check out", "v. 短语", "看一下，查看",
+     "He had to check out the garbage before it was taken away.", "他得在垃圾被拿走之前___。",
+     "口语中也可指结账、退房。"),
+    ("garbage", "n.", "<美>垃圾箱；垃圾",
+     "He had to check out the garbage.", "他得查看一下___。",
+     "英式=rubbish/dustbin。"),
+    ("take away", "v. 短语", "带走，拿走，取走",
+     "before it was taken away.", "在它被___之前。",
+     "taken 是 take 的过去分词。"),
+
+    # ── Page 28-29 检阅整队 ─────────────────────────
+    ("inspection", "n.", "视察；检查",
+     "Then it was time for inspection.", "之后就是___的时间。",
+     "动词 inspect=检查、视察。"),
+    ("line up", "v. 短语", "排列，整队（过去式：lined）",
+     "Everybody lined up. Captain Cat lined up, too.", "大家都___了。猫上校也___了。",
+     "lined 是 line 的过去式。"),
+
+    # ── Page 30-31 将军整装 ─────────────────────────
+    ("general", "n.", "上将，将军",
+     "The general fixed a soldier's gun.", "___整理了一位士兵的枪。",
+     "军衔最高级别之一。"),
+    ("fix", "v.", "整理，修理（过去式：fixed）",
+     "The general fixed a soldier's gun.", "将军___了一位士兵的枪。",
+     "fixed 是 fix 的过去式。"),
+
+    # ── Page 32-33 前进 ─────────────────────────────
+    ("whisker", "n.", "胡须；腮须",
+     "All he could fix for Captain Cat were his whiskers.", "他能给猫上校整理的只有___。",
+     "复数 whiskers；猫的胡须。"),
+    ("forward march", "v. 短语", "齐步走，前进",
+     "Forward march! said the general.", "将军说：\"___！\"",
+     "军队口令；forward=向前。"),
+
+    # ── Page 34-35 各走各路 ─────────────────────────
+    ("went one way", "v. 短语", "走一条路（go 的过去式）",
+     "The soldiers went one way.", "士兵们___。",
+     "went 是 go 的过去式；one way=一条路。"),
+    ("went the other way", "v. 短语", "走另一条路（go 的过去式）",
+     "Captain Cat went the other way.", "猫上校___。",
+     "the other=（两者中的）另一个。"),
+    ("chase", "v.", "追逐，追赶",
+     "He had to chase some birds.", "他不得不___几只鸟。",
+     "chased 是 chase 的过去式。"),
+
+    # ── Page 36-37 泥地行军 ─────────────────────────
+    ("crawl", "v.", "爬行，匍匐前进（过去式：crawled）",
+     "The soldiers crawled in the mud.", "士兵们在泥地里___。",
+     "crawled 是 crawl 的过去式。"),
+    ("hike through", "v. 短语", "徒步穿越（过去式：hiked）",
+     "They hiked through rain and sleet.", "他们冒着雨和冻雨___。",
+     "hike=远足、徒步。"),
+    ("sleet", "n.", "雨夹雪，冻雨",
+     "They hiked through rain and sleet.", "他们冒着雨和___徒步穿越。",
+     "介于雨和雪之间的天气。"),
+
+    # ── Page 38-39 小睡 ─────────────────────────────
+    ("take a nap", "v. 短语", "睡午觉；小睡一下（现在分词：taking）",
+     "He was taking a nap on Pete's bed.", "他正在皮特的床上___。",
+     "nap=短暂的睡眠。"),
+
+    # ── Page 40-41 食堂 ─────────────────────────────
+    ("chow", "v.", "吃",
+     "Time for chow!", "___饭的时间到了！",
+     "军队俚语；也可作名词=食物。"),
+    ("rush", "v.", "冲，奔（过去式：rushed）",
+     "Pete and the other soldiers rushed into the mess hall.", "皮特和其他士兵们___进食堂。",
+     "rushed 是 rush 的过去式。"),
+    ("mess hall", "n. 短语", "食堂；餐厅",
+     "rushed into the mess hall to get plates of food.", "冲进___去拿食物。",
+     "军队/学校餐厅；mess=军中食堂。"),
+    ("plate", "n.", "盘子，碟子；一盘（食物）",
+     "to get plates of nice, hot food.", "去拿一___又香又热的食物。",
+     "复数 plates；a plate of=一盘。"),
+
+    # ── Page 44 熄灯就寝 ─────────────────────────────
+    ("lights out", "n. 短语", "熄灯，熄灯号，就寝时间",
+     "Lights out! Everyone went to sleep.", "___！大家都睡觉了。",
+     "军营/宿舍口令。"),
+    ("dream of", "v. 短语", "梦想；梦见（过去式：dreamed）",
+     "Everyone went to sleep and dreamed of loved ones.", "大家睡着后都___心爱的人。",
+     "dreamed/dreamt 皆可作过去式。"),
+]
+
+start_id = 2311
+rows = []
+for i, (word, pos, meaning, ex, ex_zh, note) in enumerate(entries):
+    row_id = start_id + i
+    rows.append([str(row_id), word, pos, meaning, ex, ex_zh, note, BOOK, "未掌握", "0", DATE])
+
+print(f"共 {len(rows)} 条")
+print(f"id 范围: {rows[0][0]} - {rows[-1][0]}")
+print(f"首条：{rows[0][1]}  末条：{rows[-1][1]}")
+
+with open("/home/user/workspace/harvey-vocab/scripts/captain_cat_rows.json", "w", encoding="utf-8") as f:
+    json.dump(rows, f, ensure_ascii=False, indent=2)
+
+print("已写入 captain_cat_rows.json")
