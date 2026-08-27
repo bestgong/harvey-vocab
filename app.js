@@ -495,9 +495,15 @@
   };
   function wordFormRegex(word) {
     if (!word) return null;
+    word = String(word).replace(/[…]+|\.\.\.+/g, " ").replace(/\s+/g, " ").trim();
     var esc = function (s) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); };
     var toks = String(word).trim().split(/\s+/);
     function variants(tok) {
+      // one’s/one's in glossary phrases is a possessive placeholder:
+      // match my/your/his/her/our/their or a noun possessive such as dinosaur's.
+      if (/^one['\u2019]s$/i.test(tok)) {
+        return ["my", "your", "his", "her", "our", "their", "[A-Za-z][A-Za-z-]*['\u2019]s"];
+      }
       if (!/^[a-zA-Z]+$/.test(tok)) return [esc(tok)];
       var t = tok.toLowerCase();
       var v = [t];
