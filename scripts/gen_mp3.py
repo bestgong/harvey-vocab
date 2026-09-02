@@ -223,6 +223,20 @@ PHRASES = [
     "have fun",
     "get back",
     "out of sight",
+    # Happy Birthday, Danny and the Dinosaur (2026-09-02): 汪培珽 L1-11 多词短语
+    "in a hurry",
+    "birthday party",
+    "pick up",
+    "a hundred million",
+    "hang up",
+    "give out",
+    "pin the tail on the donkey",
+    "sat down",
+    "a dish of",
+    "make a wish",
+    "next year",
+    "blow out",
+    "I have ever had",
 ]
 
 def slugify(text):
