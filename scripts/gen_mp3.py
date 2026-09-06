@@ -237,6 +237,20 @@ PHRASES = [
     "next year",
     "blow out",
     "I have ever had",
+    # Danny and the Dinosaur Go to Camp (2026-09-06): 汪培珣 L1-12 多词短语
+    "go to camp",
+    "take along",
+    "take a step",
+    "play football",
+    "row boat",
+    "of course",
+    "as soon as",
+    "time for bed",
+    "get tired",
+    "hold tight",
+    "toasted marshmallows",
+    "wake me up",
+    "fell asleep",
 ]
 
 def slugify(text):
