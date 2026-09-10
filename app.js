@@ -473,6 +473,7 @@
     show: ["showed", "shown"],
     shut: ["shut"],
     sing: ["sang", "sung"],
+    spit: ["spat", "spat"],
     sit: ["sat"],
     sleep: ["slept"],
     speak: ["spoke", "spoken"],
