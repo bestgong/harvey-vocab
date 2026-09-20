@@ -308,6 +308,28 @@ PHRASES = [
     "come with him",
     "in the end",
     "stay in",
+    # The Little Red Hen (2026-09-20): 第二套图书馆 L3-3 多词短语
+    "once upon a time",
+    "live on a farm",
+    "bright red",
+    "glossy black",
+    "sharp toes",
+    "grains of wheat",
+    "do it myself",
+    "pecked at",
+    "waste of time",
+    "one by one",
+    "waited for",
+    "all through the winter",
+    "by spring",
+    "the wheat was ready",
+    "cut down",
+    "without any help at all",
+    "grind into",
+    "ground it into flour",
+    "make the flour into bread",
+    "bake the bread",
+    "jump up",
 ]
 
 def slugify(text):
