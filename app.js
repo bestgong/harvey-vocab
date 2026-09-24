@@ -418,6 +418,7 @@
     choose: ["chose", "chosen"],
     come: ["came"],
     cost: ["cost"],
+    creep: ["crept"],
     cut: ["cut"],
     dig: ["dug"],
     do: ["did", "done", "does"],
