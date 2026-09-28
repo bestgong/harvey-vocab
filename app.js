@@ -483,6 +483,7 @@
     stand: ["stood"],
     sweep: ["swept"],
     steal: ["stole", "stolen"],
+    sting: ["stung"],
     swim: ["swam", "swum"],
     take: ["took", "taken"],
     teach: ["taught"],

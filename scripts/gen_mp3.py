@@ -358,6 +358,21 @@ PHRASES = [
     "spat at",
     "as for",
     "the rest of their lives",
+    # The King's Pudding (2026-09-28): 第二套图书馆 L3-5 多词短语
+    "dangerous jungle",
+    "catch his eye",
+    "point to",
+    "no one else",
+    "chase me away",
+    "heap of mud",
+    "in the middle of the day",
+    "bright loop",
+    "hang over a branch",
+    "pull it tight",
+    "the finest",
+    "dark shape",
+    "That's no good",
+    "pour out of",
 ]
 
 def slugify(text):
