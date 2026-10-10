@@ -373,6 +373,28 @@ PHRASES = [
     "dark shape",
     "That's no good",
     "pour out of",
+    # The Magic Porridge Pot (2026-10-10): 第二套图书馆 L3-6 多词短语
+    "greedy boy",
+    "Would you like",
+    "One good turn deserves another",
+    "That doesn't matter",
+    "magic words",
+    "fill the pot",
+    "delicious meal",
+    "from then on",
+    "have plenty to eat",
+    "start to",
+    "fill with",
+    "creep in",
+    "couldn't wait to",
+    "steaming porridge",
+    "dripped over",
+    "pour onto the floor",
+    "fill the room",
+    "run outside",
+    "drown in",
+    "pour down the street",
+    "at last",
 ]
 
 def slugify(text):
