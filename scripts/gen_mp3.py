@@ -485,6 +485,27 @@ PHRASES = [
     "a quarter",
     "three quarters",
     "the end of",
+    # The Three Little Pigs (2026-10-30)
+    "a pretty little house",
+    "of our own",
+    "packed their bags",
+    "waved goodbye",
+    "watch out",
+    "trot along",
+    "I’m going to do sth.",
+    "put down a soft straw floor",
+    "shut the door",
+    "trot on",
+    "better than",
+    "work hard",
+    "so heavy",
+    "the best of all",
+    "Not by the hair on my chinny-chin-chin",
+    "blow your house in",
+    "as fast as he could",
+    "ran out of puff",
+    "jump onto",
+    "slammed on the lid",
 ]
 
 def slugify(text):
