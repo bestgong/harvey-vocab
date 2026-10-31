@@ -506,6 +506,16 @@ PHRASES = [
     "ran out of puff",
     "jump onto",
     "slammed on the lid",
+    # Today I Will Fly! (2026-10-31)
+    "will not",
+    "next week",
+    "good-bye",
+    "thank you",
+    "thank you for",
+    "did not",
+    "It was",
+    "will you",
+    "get help",
 ]
 
 def slugify(text):
